@@ -42,8 +42,6 @@ from subprocess import Popen, PIPE
 # from tellopy import logger
 
 # log = tellopy.logger.Logger('TelloUI')
-container = None
-drone = None
 prev_flight_data = None
 video_player = None
 video_recorder = None
@@ -295,8 +293,7 @@ def main():
     pygame.display.init()
     pygame.display.set_mode((1280, 720))
     pygame.font.init()
-    global container
-    global drone
+
     global font
     font = pygame.font.SysFont("dejavusansmono", 32)
 
@@ -309,8 +306,7 @@ def main():
     drone.log.set_level(2)
     drone.connect()
     drone.start_video()
-    container = av.open(drone.get_video_stream())
-
+    
     drone.subscribe(drone.EVENT_FLIGHT_DATA, flightDataHandler)
     drone.subscribe(drone.EVENT_VIDEO_FRAME, videoFrameHandler)
     # Error received on the below line as drone object don't have EVENT_FILE_RECEIVED attribute
