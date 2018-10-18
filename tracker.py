@@ -43,9 +43,10 @@ def main():
 
     # define the lower and upper boundaries of the "green"
     # ball in the HSV color space. NB the hue range in 
-    # opencv is 180, normally it is 360 
-    green_lower = (50, 50, 50)
-    green_upper = (70,255,255)
+    # opencv is 180, normally it is 360
+    # changed green_lower and upper values
+    green_lower = (40, 20, 25)
+    green_upper = (55,255,120)
     red_lower = (0, 50, 50) 
     red_upper = (20,255,255)
     blue_lower = (110, 50, 50)
@@ -85,21 +86,40 @@ def main():
     cv2.destroyAllWindows()
 
 class Tracker:
-    def __init__(self, vs, stream, color_lower, color_upper):
-        self.vs = vs
-        self.stream = stream
+
+    #changed the constructor for integrating with tellotracker.
+    def __init__(self, frame, color_lower, color_upper):
         self.color_lower = color_lower
         self.color_upper = color_upper
-        self.next_frame = True
-        self.frame = None
-        self.get_frame()
-        height, width, depth = self.frame.shape
-        self.width = width
-        self.height = height
-        self.midx = int(width / 2)
-        self.midy = int(height / 2)
+        self.width = frame.shape[0]
+        self.height = frame.shape[1]
+        self.midx = int(self.width / 2)
+        self.midy = int(self.height / 2)
         self.xoffset = 0
         self.yoffset = 0
+        self.frame = frame
+
+    # def __init__(self, vs, stream, color_lower, color_upper):
+    #     self.vs = vs
+    #     self.stream = stream
+    #     self.color_lower = color_lower
+    #     self.color_upper = color_upper
+    #     self.next_frame = True
+    #     self.frame = None
+    #     self.get_frame()
+    #     height, width, depth = self.frame.shape
+    #     self.width = width
+    #     self.height = height
+    #     self.midx = int(width / 2)
+    #     self.midy = int(height / 2)
+    #     self.xoffset = 0
+    #     self.yoffset = 0
+
+    def get_mids(self):
+        return (self.midx,self.midy)
+
+    def get_offsets(self):
+        return (self.xoffset, self.yoffset)
 
     def get_frame(self):
         # grab the current frame

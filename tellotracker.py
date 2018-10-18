@@ -23,6 +23,9 @@ Controls:
 
 import time
 import sys
+
+import imutils
+import numpy
 import tellopy
 import pygame
 import pygame.display
@@ -31,11 +34,16 @@ import pygame.locals
 import pygame.font
 import os
 import datetime
+import av
+from cv2 import cv2
+
+from tracker import Tracker
 from subprocess import Popen, PIPE
 # from tellopy import logger
 
 # log = tellopy.logger.Logger('TelloUI')
-
+container = None
+drone = None
 prev_flight_data = None
 video_player = None
 video_recorder = None
@@ -80,8 +88,52 @@ def palm_land(drone, speed):
         return
     drone.palm_land()
 
+
 def toggle_tracking(drone, speed):
     global tracking
+    container = av.open(drone.get_video_stream())
+    video_st = container.streams.video[0]
+    green_lower = (40, 100, 100)
+    green_upper = (75, 255, 255)
+
+    for packet in container.demux((video_st,)):
+        for frame in packet.decode():
+
+            image = cv2.cvtColor(numpy.array(frame.to_image()), cv2.COLOR_RGB2BGR)
+            greentracker = Tracker(image, green_lower, green_upper)
+            greentracker.track()
+            greentracker.show()
+
+            # In progress drone tracking
+            # offsets = greentracker.get_offsets()
+            # mids = greentracker.get_mids()
+            #
+            # time.sleep(0.01)
+            # for e in pygame.event.get():
+            #     if e.type == pygame.locals.KEYDOWN:
+            #         print('+' + pygame.key.name(e.key))
+            # if (mids[0]-offsets[0] < -20 and mids[1]-offsets[1] < -20):
+            #     print("moving left and going up")
+            #     # drone.clockwise(speed)
+            # elif (mids[0]-offsets[0] < -20 and mids[1]-offsets[1] > -20):
+            #     print("moving left and going down")
+            #     # drone.clockwise(speed)
+            # elif (mids[0]-offsets[0] > 20 and mids[1]-offsets[1] < -20):
+            #     print("moving right and going up")
+            #     # drone.counter_clockwise(speed)
+            # elif (mids[0] - offsets[0] > 20 and mids[1] - offsets[1] < -20):
+            #     print("moving right and going down")
+            #     # drone.counter_clockwise(speed)
+            # elif (mids[0] - offsets[0] > 20 ):
+            #     print("moving right")
+            #     # drone.counter_clockwise(speed)
+            # elif (mids[0] - offsets[0] < -20 ):
+            #     print("moving left")
+            #     # drone.counter_clockwise(speed)
+
+
+
+
     if speed == 0: # handle key up event
         return
     tracking = not(tracking)
@@ -152,7 +204,10 @@ class FlightDataDisplay(object):
         return self._surface
 
 def flight_data_mode(drone, *args):
-    return (drone.zoom and "VID" or "PIC")
+    # error received on the below line - drone object doesn't have attribute zoom.
+    # return (drone.zoom and "VID" or "PIC")
+    return ("VID" or "PIC")
+
 
 def tracker_mode(drone, *args):
     if tracking:
@@ -204,6 +259,7 @@ def flightDataHandler(event, sender, data):
 def videoFrameHandler(event, sender, data):
     global video_player
     global video_recorder
+    global container
     # print(len(data))
     if video_player is None:
         cmd = [ 'mplayer', '-fps', '35', '-really-quiet' ]
@@ -239,7 +295,8 @@ def main():
     pygame.display.init()
     pygame.display.set_mode((1280, 720))
     pygame.font.init()
-
+    global container
+    global drone
     global font
     font = pygame.font.SysFont("dejavusansmono", 32)
 
@@ -252,9 +309,13 @@ def main():
     drone.log.set_level(2)
     drone.connect()
     drone.start_video()
+    container = av.open(drone.get_video_stream())
+
     drone.subscribe(drone.EVENT_FLIGHT_DATA, flightDataHandler)
     drone.subscribe(drone.EVENT_VIDEO_FRAME, videoFrameHandler)
-    drone.subscribe(drone.EVENT_FILE_RECEIVED, handleFileReceived)
+    # Error received on the below line as drone object don't have EVENT_FILE_RECEIVED attribute
+    # drone.subscribe(drone.EVENT_FILE_RECEIVED, handleFileReceived)
+
     speed = 30
 
     try:
